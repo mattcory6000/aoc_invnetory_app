@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Count</title>
+</head>
+<body>
+    <h1>Scan or Enter a UPC</h1>
+
+    <form method="POST">
+        <input type="text" name="upc_search" placeholder="Scan or type UPC" autofocus>
+        <button type="submit">Search</button>
+    </form>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% if result %}
+        <h2>Match Found:</h2>
+        <p><strong>ID:</strong> {{ result['Wine ID'] }}</p>
+        <p><strong>Name:</strong> {{ result['Wine Name'] }}</p>
+        <p><strong>Wine Code:</strong> {{ result['Wine Code'] }}</p>
+        <p><strong>Bin Location:</strong> {{ result['Bin Location'] }}</p>
+        <p><strong>UPC:</strong> {{ result['UPC'] }}</p>
+
+        <!-- We'll add count entry fields next -->
+    {% endif %}
+</body>
+</html>

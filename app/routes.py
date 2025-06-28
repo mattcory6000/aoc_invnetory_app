@@ -63,3 +63,36 @@ def preview_data():
     except Exception as e:
         flash(f"Error processing data: {str(e)}")
         return redirect(url_for('main.upload_files'))
+    
+@main.route('/count', methods=['GET', 'POST'])
+def count():
+    global inventory_df, properties_df
+
+    if inventory_df is None or properties_df is None:
+        flash("No data loaded. Please upload files first.")
+        return redirect(url_for('main.upload_files'))
+
+    # Prepare merged DataFrame (if not already)
+    inventory_trimmed = inventory_df[['Wine ID', 'Wine', 'Wine Code', 'BIN Location']]
+    properties_trimmed = properties_df[['Wine ID', 'UPC']]
+    merged_df = pd.merge(inventory_trimmed, properties_trimmed, on='Wine ID', how='left')
+    merged_df.columns = ['Wine ID', 'Wine Name', 'Wine Code', 'Bin Location', 'UPC']
+
+    # Add count columns if missing
+    if 'Case Count' not in merged_df.columns:
+        merged_df['Case Count'] = ''
+    if 'Bottle Count' not in merged_df.columns:
+        merged_df['Bottle Count'] = ''
+
+    upc_search = request.form.get('upc_search', '').strip()
+    matched_record = None
+
+    if request.method == 'POST' and upc_search:
+        match = merged_df[merged_df['UPC'].astype(str) == upc_search]
+        if not match.empty:
+            matched_record = match.iloc[0].to_dict()
+        else:
+            flash("No match found for UPC.")
+
+    return render_template('count.html', result=matched_record)
+        
