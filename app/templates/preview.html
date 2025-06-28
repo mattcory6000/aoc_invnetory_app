@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Preview</title>
+</head>
+<body>
+    <h1>Data Preview</h1>
+
+    {% if data %}
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Wine ID</th>
+                    <th>Wine Name</th>
+                    <th>Wine Code</th>
+                    <th>Bin Location</th>
+                    <th>UPC</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row['Wine ID'] }}</td>
+                    <td>{{ row['Wine Name'] }}</td>
+                    <td>{{ row['Wine Code'] }}</td>
+                    <td>{{ row['Bin Location'] }}</td>
+                    <td>{{ row['UPC'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No data available.</p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('main.upload_files') }}">Upload More Files</a>
+</body>
+</html>
