@@ -6,18 +6,28 @@
 </head>
 <body>
     <h1>Scan or Enter a UPC</h1>
+    <form method="post">
+        <label for="upc_search">Scan or type UPC</label><br>
+        <input type="text" id="upc_search" name="upc_search" required><br><br>
+        
+        <label for="bin_location">Bin Location:</label><br>
+        <input type="text" id="bin_location" name="bin_location"><br><br>
 
-    <form method="POST">
-        <input type="text" name="upc_search" placeholder="Scan or type UPC" autofocus>
-        <button type="submit">Search</button>
+        <label for="case_count">Case Count:</label><br>
+        <input type="text" id="case_count" name="case_count"><br><br>
+
+        <label for="bottle_count">Bottle Count:</label><br>
+        <input type="text" id="bottle_count" name="bottle_count"><br><br>
+
+        <button type="submit">Save Count</button>
     </form>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul>
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
         </ul>
       {% endif %}
     {% endwith %}
@@ -27,10 +37,12 @@
         <p><strong>ID:</strong> {{ result['Wine ID'] }}</p>
         <p><strong>Name:</strong> {{ result['Wine Name'] }}</p>
         <p><strong>Wine Code:</strong> {{ result['Wine Code'] }}</p>
-        <p><strong>Bin Location:</strong> {{ result['Bin Location'] }}</p>
         <p><strong>UPC:</strong> {{ result['UPC'] }}</p>
 
-        <!-- We'll add count entry fields next -->
+        <h3>Current Count</h3>
+        <p><strong>Bin Location:</strong> {{ result['Bin Location'] }}</p>
+        <p><strong>Case Count:</strong> {{ result['Case Count'] }}</p>
+        <p><strong>Bottle Count:</strong> {{ result['Bottle Count'] }}</p>
     {% endif %}
 </body>
 </html>

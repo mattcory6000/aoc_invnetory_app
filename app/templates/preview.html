@@ -16,6 +16,8 @@
                     <th>Wine Code</th>
                     <th>Bin Location</th>
                     <th>UPC</th>
+                    <th>Case Count</th>
+                    <th>Bottle Count</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,6 +28,8 @@
                     <td>{{ row['Wine Code'] }}</td>
                     <td>{{ row['Bin Location'] }}</td>
                     <td>{{ row['UPC'] }}</td>
+                    <td>{{ row.get('Case Count', '') }}</td>
+                    <td>{{ row.get('Bottle Count', '') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

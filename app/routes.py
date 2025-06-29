@@ -1,17 +1,16 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint
 import pandas as pd
-from werkzeug.utils import secure_filename
+from flask import render_template, request, redirect, url_for, flash
 import os
-
-main = Blueprint('main', __name__)
 
 # In-memory storage
 inventory_df = None
 properties_df = None
 
+main = Blueprint('main', __name__)
+
 @main.route('/')
 def index():
-    from flask import render_template
     return render_template("upload.html")
 
 @main.route('/upload', methods=['GET', 'POST'])
@@ -30,7 +29,7 @@ def upload_files():
             inventory_df = pd.read_excel(inventory_file)
             properties_df = pd.read_excel(properties_file)
             flash("Files uploaded successfully!")
-            return redirect(url_for('main.index'))  # We'll later redirect to a dashboard/search view
+            return redirect(url_for('main.index'))
         except Exception as e:
             flash(f"Error reading files: {str(e)}")
             return redirect(request.url)
@@ -46,24 +45,16 @@ def preview_data():
         return redirect(url_for('main.upload_files'))
 
     try:
-        # Select only needed columns
-        inventory_trimmed = inventory_df[['Wine ID', 'Wine', 'Wine Code', 'BIN Location']]
+        inventory_trimmed = inventory_df[['Wine ID', 'Wine', 'Wine Code', 'BIN Location', 'Case Count', 'Bottle Count']]
         properties_trimmed = properties_df[['Wine ID', 'UPC']]
-
-        # Merge on Wine ID
         merged_df = pd.merge(inventory_trimmed, properties_trimmed, on='Wine ID', how='left')
-
-        # Rename for clarity
-        merged_df.columns = ['Wine ID', 'Wine Name', 'Wine Code', 'Bin Location', 'UPC']
-
-        # Convert to records for rendering
+        merged_df.columns = ['Wine ID', 'Wine Name', 'Wine Code', 'Bin Location', 'Case Count', 'Bottle Count', 'UPC']
         records = merged_df.to_dict(orient='records')
         return render_template("preview.html", data=records)
-
     except Exception as e:
         flash(f"Error processing data: {str(e)}")
         return redirect(url_for('main.upload_files'))
-    
+
 @main.route('/count', methods=['GET', 'POST'])
 def count():
     global inventory_df, properties_df
@@ -72,27 +63,62 @@ def count():
         flash("No data loaded. Please upload files first.")
         return redirect(url_for('main.upload_files'))
 
-    # Prepare merged DataFrame (if not already)
-    inventory_trimmed = inventory_df[['Wine ID', 'Wine', 'Wine Code', 'BIN Location']]
-    properties_trimmed = properties_df[['Wine ID', 'UPC']]
-    merged_df = pd.merge(inventory_trimmed, properties_trimmed, on='Wine ID', how='left')
-    merged_df.columns = ['Wine ID', 'Wine Name', 'Wine Code', 'Bin Location', 'UPC']
-
-    # Add count columns if missing
-    if 'Case Count' not in merged_df.columns:
-        merged_df['Case Count'] = ''
-    if 'Bottle Count' not in merged_df.columns:
-        merged_df['Bottle Count'] = ''
-
     upc_search = request.form.get('upc_search', '').strip()
     matched_record = None
 
     if request.method == 'POST' and upc_search:
-        match = merged_df[merged_df['UPC'].astype(str) == upc_search]
-        if not match.empty:
-            matched_record = match.iloc[0].to_dict()
+        upc_normalized = upc_search.lstrip("'").strip()
+
+        properties_trimmed = properties_df[['Wine ID', 'UPC']]
+        wine_ids = properties_trimmed[properties_trimmed['UPC'].astype(str).str.lstrip("'").str.strip() == upc_normalized]['Wine ID']
+
+        if not wine_ids.empty:
+            wine_id = wine_ids.iloc[0]
+
+            if 'Case Count' not in inventory_df.columns:
+                inventory_df['Case Count'] = ''
+            if 'Bottle Count' not in inventory_df.columns:
+                inventory_df['Bottle Count'] = ''
+
+            idx = inventory_df[inventory_df['Wine ID'] == wine_id].index
+            if not idx.empty:
+                i = idx[0]
+                bin_input = request.form.get('bin_location', '')
+                if bin_input:
+                    inventory_df.at[i, 'BIN Location'] = bin_input
+                case_input = request.form.get('case_count', '')
+                if case_input:
+                    inventory_df.at[i, 'Case Count'] = case_input
+                bottle_input = request.form.get('bottle_count', '')
+                if bottle_input:
+                    inventory_df.at[i, 'Bottle Count'] = bottle_input
+                flash("Count saved.")
+        searched_wine_id = wine_id if not wine_ids.empty else None
+
+    # Refresh match display after POST or GET with a valid UPC
+    if upc_search:
+        upc_normalized = upc_search.lstrip("'").strip()
+        properties_trimmed = properties_df[['Wine ID', 'UPC']]
+        wine_ids = properties_trimmed[properties_trimmed['UPC'].astype(str).str.lstrip("'").str.strip() == upc_normalized]['Wine ID']
+        
+        wine_id = searched_wine_id if 'searched_wine_id' in locals() else wine_ids.iloc[0]
+        if wine_id is not None:
+            idx = inventory_df[inventory_df['Wine ID'] == wine_id].index
+            if not idx.empty:
+                i = idx[0]
+                wine_row = inventory_df.loc[i, ['Wine ID', 'Wine', 'Wine Code', 'BIN Location', 'Case Count', 'Bottle Count']]
+                upc_row = properties_trimmed[properties_trimmed['Wine ID'] == wine_id].iloc[0]
+                matched_record = {
+                    'Wine ID': wine_row['Wine ID'],
+                    'Wine Name': wine_row['Wine'],
+                    'Wine Code': wine_row['Wine Code'],
+                    'Bin Location': wine_row['BIN Location'],
+                    'Case Count': wine_row['Case Count'],
+                    'Bottle Count': wine_row['Bottle Count'],
+                    'UPC': upc_row['UPC'],
+                    'Show Count Only': True  # Used to trigger display-only mode in the template
+                }
         else:
             flash("No match found for UPC.")
 
     return render_template('count.html', result=matched_record)
-        
